@@ -2,7 +2,7 @@
 
 Aplicativo simples de organizacao de leituras, desenvolvido em Flutter/Dart.
 
-**Integrante:** Vivian Gomes Leal da Rocha Santos.
+**Integrante:** Vivian Gomes Leal.
 
 ## Requisitos atendidos
 - Tela inicial com `ListView` dos livros.
@@ -22,15 +22,6 @@ pubspec.yaml
 README.md
 ```
 
-## Abrir no VS Code
-1. Extraia a pasta do projeto, por exemplo em `D:\\Projetos_Flutter\\TP7_Leituras_Basico`.
-2. Abra **essa pasta** no VS Code (a que contem o `pubspec.yaml`).
-3. No terminal, execute `flutter create .` para gerar as pastas nativas do Flutter, se estiverem ausentes.
-4. Execute `flutter pub get`.
-5. Execute `flutter run -d chrome`.
-
-> O Flutter SDK pode estar em outro diretorio ou unidade. Configure `dart.flutterSdkPath` com o caminho real da instalacao do SDK.
-
 ## Teste manual sugerido
 1. Abra o aplicativo com a lista vazia.
 2. Cadastre um livro com titulo, autor e cada status.
@@ -42,5 +33,3 @@ README.md
 - https://pub.dev/packages/shared_preferences
 - https://docs.flutter.dev/cookbook/navigation/navigation-basics
 
-## Entrega no GitHub
-O historico deste pacote possui 3 commits locais com as etapas de desenvolvimento. Crie um repositorio vazio no GitHub e envie a branch do projeto. Confira com `git log --oneline`.

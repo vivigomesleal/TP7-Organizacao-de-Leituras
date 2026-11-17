@@ -1,3 +1,4 @@
+
 name: tp7_leituras_basico
 description: TP7 - Aplicativo de organizacao de leituras em Flutter e Dart.
 publish_to: 'none'
@@ -10,6 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: 2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true

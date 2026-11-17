@@ -1,6 +1,6 @@
-// TP7 - Aplicativo de Organizacao de Leituras
-// Integrante: Vivian Gomes Leal da Rocha Santos
-// Desenvolvido em Dart com Flutter.
+
+// Integrante: Vivian Gomes Leal
+
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -44,7 +44,7 @@ class _TelaInicialState extends State<TelaInicial> {
     carregarLivros();
   }
 
-  // SharedPreferences armazena texto, entao a lista e convertida para JSON.
+ 
   Future<void> carregarLivros() async {
     final prefs = await SharedPreferences.getInstance();
     final texto = prefs.getString('livros');
@@ -118,7 +118,7 @@ class _TelaInicialState extends State<TelaInicial> {
           children: [
             Text('Minha Estante', style: TextStyle(fontSize: 20)),
             Text(
-              'Vivian Gomes Leal da Rocha Santos',
+              'Vivian Gomes Leal',
               style: TextStyle(fontSize: 11),
             ),
           ],
@@ -164,7 +164,7 @@ class _TelaInicialState extends State<TelaInicial> {
   }
 }
 
-// Segunda tela: formulario com titulo, autor e status da leitura.
+
 class TelaCadastro extends StatefulWidget {
   const TelaCadastro({Key? key}) : super(key: key);
 
