@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MeuAplicativo());
 }
 
@@ -27,7 +28,6 @@ class MeuAplicativo extends StatelessWidget {
   }
 }
 
-// Tela inicial: lista os livros e permite exclui-los.
 class TelaInicial extends StatefulWidget {
   const TelaInicial({Key? key}) : super(key: key);
 
@@ -37,6 +37,7 @@ class TelaInicial extends StatefulWidget {
 
 class _TelaInicialState extends State<TelaInicial> {
   List<Map<String, String>> livros = [];
+  bool carregando = true;
 
   @override
   void initState() {
@@ -44,37 +45,57 @@ class _TelaInicialState extends State<TelaInicial> {
     carregarLivros();
   }
 
- 
   Future<void> carregarLivros() async {
-    final prefs = await SharedPreferences.getInstance();
-    final texto = prefs.getString('livros');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
 
-    if (texto != null) {
-      try {
+      final texto = prefs.getString('livros');
+
+      List<Map<String, String>> lista = [];
+
+      if (texto != null) {
         final dados = jsonDecode(texto) as List<dynamic>;
-        final lista = dados.map((item) {
+
+        lista = dados.map((item) {
           final livro = item as Map<String, dynamic>;
+
           return <String, String>{
             'titulo': livro['titulo'].toString(),
             'autor': livro['autor'].toString(),
             'status': livro['status'].toString(),
           };
         }).toList();
-
-        if (!mounted) return;
-        setState(() {
-          livros = lista;
-        });
-      } catch (erro) {
-        if (!mounted) return;
-        mostrarMensagem('Nao foi possivel carregar os livros.');
       }
+
+      if (!mounted) return;
+
+      setState(() {
+        livros = lista;
+        carregando = false;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+
+      setState(() {
+        carregando = false;
+      });
+
+      mostrarMensagem('Não foi possível carregar os livros.');
     }
   }
 
-  Future<void> salvarLivros() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('livros', jsonEncode(livros));
+  Future<bool> salvarLivros() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      return await prefs.setString(
+        'livros',
+        jsonEncode(livros),
+      );
+    } catch (erro) {
+      return false;
+    }
   }
 
   void mostrarMensagem(String mensagem) {
@@ -86,17 +107,25 @@ class _TelaInicialState extends State<TelaInicial> {
   Future<void> cadastrarLivro() async {
     final novoLivro = await Navigator.push<Map<String, String>>(
       context,
-      MaterialPageRoute(builder: (context) => const TelaCadastro()),
+      MaterialPageRoute(
+        builder: (context) => const TelaCadastro(),
+      ),
     );
 
+    if (!mounted || novoLivro == null) return;
+
+    setState(() {
+      livros.add(novoLivro);
+    });
+
+    final salvo = await salvarLivros();
+
     if (!mounted) return;
-    if (novoLivro != null) {
-      setState(() {
-        livros.add(novoLivro);
-      });
-      await salvarLivros();
-      if (!mounted) return;
+
+    if (salvo) {
       mostrarMensagem('Livro adicionado com sucesso!');
+    } else {
+      mostrarMensagem('Erro ao salvar o livro.');
     }
   }
 
@@ -104,9 +133,16 @@ class _TelaInicialState extends State<TelaInicial> {
     setState(() {
       livros.removeAt(indice);
     });
-    await salvarLivros();
+
+    final salvo = await salvarLivros();
+
     if (!mounted) return;
-    mostrarMensagem('Livro removido com sucesso!');
+
+    if (salvo) {
+      mostrarMensagem('Livro removido com sucesso!');
+    } else {
+      mostrarMensagem('Erro ao atualizar os livros.');
+    }
   }
 
   @override
@@ -116,54 +152,71 @@ class _TelaInicialState extends State<TelaInicial> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Minha Estante', style: TextStyle(fontSize: 20)),
             Text(
-              'Vivian Gomes Leal',
+              'Minha Estante',
+              style: TextStyle(fontSize: 30),
+            ),
+            Text(
+              'by Vivi Gomes',
               style: TextStyle(fontSize: 11),
             ),
           ],
         ),
       ),
-      body: livros.isEmpty
+      body: carregando
           ? const Center(
-              child: Text(
-                'Nenhum livro cadastrado.\nToque em + para adicionar.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 17, color: Colors.black54),
-              ),
+              child: CircularProgressIndicator(),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: livros.length,
-              itemBuilder: (context, indice) {
-                final livro = livros[indice];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: const Icon(Icons.menu_book, color: Colors.indigo),
-                    title: Text(livro['titulo'] ?? ''),
-                    subtitle: Text(
-                      'Autor: ${livro['autor']}\nStatus: ${livro['status']}',
-                    ),
-                    isThreeLine: true,
-                    trailing: IconButton(
-                      tooltip: 'Remover livro',
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () => removerLivro(indice),
+          : livros.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Nenhum livro cadastrado.\nToque em + para adicionar.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.black54,
                     ),
                   ),
-                );
-              },
-            ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: livros.length,
+                  itemBuilder: (context, indice) {
+                    final livro = livros[indice];
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.menu_book,
+                          color: Colors.indigo,
+                        ),
+                        title: Text(livro['titulo'] ?? ''),
+                        subtitle: Text(
+                          'Autor: ${livro['autor']}\n'
+                          'Status: ${livro['status']}',
+                        ),
+                        isThreeLine: true,
+                        trailing: IconButton(
+                          tooltip: 'Remover livro',
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => removerLivro(indice),
+                        ),
+                      ),
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton(
-        onPressed: cadastrarLivro,
+        onPressed: carregando ? null : cadastrarLivro,
         tooltip: 'Cadastrar livro',
         child: const Icon(Icons.add),
       ),
     );
   }
 }
-
 
 class TelaCadastro extends StatefulWidget {
   const TelaCadastro({Key? key}) : super(key: key);
@@ -175,6 +228,7 @@ class TelaCadastro extends StatefulWidget {
 class _TelaCadastroState extends State<TelaCadastro> {
   final tituloController = TextEditingController();
   final autorController = TextEditingController();
+
   String status = 'Quero ler';
 
   @override
@@ -190,7 +244,9 @@ class _TelaCadastroState extends State<TelaCadastro> {
 
     if (titulo.isEmpty || autor.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha o titulo e o autor.')),
+        const SnackBar(
+          content: Text('Preencha o título e o autor.'),
+        ),
       );
       return;
     }
@@ -209,9 +265,12 @@ class _TelaCadastroState extends State<TelaCadastro> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Cadastrar livro', style: TextStyle(fontSize: 20)),
             Text(
-              'Vivian Gomes Leal da Rocha Santos',
+              'Cadastrar livro',
+              style: TextStyle(fontSize: 20),
+            ),
+            Text(
+              'by Vivi Gomes',
               style: TextStyle(fontSize: 11),
             ),
           ],
@@ -222,12 +281,15 @@ class _TelaCadastroState extends State<TelaCadastro> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Novo livro', style: TextStyle(fontSize: 22)),
+            const Text(
+              'Novo livro',
+              style: TextStyle(fontSize: 22),
+            ),
             const SizedBox(height: 20),
             TextField(
               controller: tituloController,
               decoration: const InputDecoration(
-                labelText: 'Titulo do livro',
+                labelText: 'Título do livro',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -249,7 +311,11 @@ class _TelaCadastroState extends State<TelaCadastro> {
                 value: status,
                 isExpanded: true,
                 underline: const SizedBox(),
-                items: ['Quero ler', 'Lendo', 'Concluído'].map((opcao) {
+                items: [
+                  'Quero ler',
+                  'Lendo',
+                  'Concluído',
+                ].map((opcao) {
                   return DropdownMenuItem<String>(
                     value: opcao,
                     child: Text(opcao),
@@ -279,3 +345,4 @@ class _TelaCadastroState extends State<TelaCadastro> {
     );
   }
 }
+
